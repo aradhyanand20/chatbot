@@ -8,7 +8,7 @@ if "messages" not in st.session_state:
 chat_window = st.container()
 with chat_window:
     for msg in st.session_state.messages:
-        with st.chat_message([msg["role"]]):
+        with st.chat_message(msg["role"]):
             st.write(msg["content"])
 
 with st.form(key="chats", clear_on_submit=True):
@@ -17,4 +17,18 @@ with st.form(key="chats", clear_on_submit=True):
 
 if send and user_input.strip():
     st.session_state.messages.append({"role":"user", "content":user_input})
+
+    # Adding a 2 second loading
+    with st.spinner("Thinking..."):
+        import time
+        time.sleep(2)
+
+    # genarate a bot reply
+    bot_reply = f"You said {user_input}"
+
+    st.session_state.messages.append({
+        "role": "assistant",
+        "content": bot_reply
+    })
+
     st.rerun()
