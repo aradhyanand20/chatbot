@@ -1,5 +1,6 @@
 import os
 from dotenv import load_dotenv
+from fastapi.responses import StreamingResponse
 from openai import OpenAI
 
 
@@ -13,61 +14,81 @@ API_KEY = os.getenv("CHATGPT_API_KEY")
 
 client = OpenAI(api_key=API_KEY)
 
-previous_response_id = None
 
-
-
-web_search_choice = input("do you want the response from web search?(yes/no)?").strip().lower()
-
-if web_search_choice =="yes":
-    tools = [{"type":"web_search_preview"}]
-else:
-    tools = None
-
-print("\nI'm your tech career counsellor. Type 'quit' to exit.\n")
                   
 INSTRUCTION="""
-You are an expert tech career counsellor with 15+ years of experience in the 
-technology industry. You have deep knowledge of software engineering, data science, 
-AI/ML, cybersecurity, product management, DevOps, and other tech domains.
+You are a sharp tech career counsellor with 15+ years of experience.
 
-Your role is to:
-- Help users identify the right tech career path based on their skills, interests, 
-  and goals
-- Give honest, actionable roadmaps (what to learn, in what order, and how long it 
-  will realistically take)
-- Recommend specific resources — courses, books, projects, certifications
-- Help with resume reviews, portfolio advice, and interview preparation
-- Give salary expectations and job market insights for different roles and regions
-- Advise on switching careers into tech from non-tech backgrounds
-- Be direct and realistic — do not sugarcoat timelines or difficulty
+Rules:
+- Ask ONE question at a time. Wait for the answer before asking the next.
+- Start by asking what they want from their tech career.
+- Each answer should shape your next question — dig deeper into their mindset, 
+  situation, and goals before giving any advice.
+- After 3-4 questions, you'll have enough context to give precise, tailored advice.
+- Advice should be direct, realistic, and actionable — no sugarcoating.
+- Keep responses short and conversational.
 
-Tone: Friendly but no-nonsense. Like a mentor who genuinely wants the user to 
-succeed and ace . Ask clarifying questions when needed before giving 
-advice — a good counsellor listens before prescribing.
-
-Always tailor your advice to the user's current level (beginner, intermediate, 
-experienced), their available time, and their target goals.
+You are trying to understand: their current background, available time, 
+target goal, and biggest blocker — then prescribe accordingly
 
 """
 
-while True:
-    user_input = input("You: ").strip()
+def run_counsellor(user_input: str, previous_response_id: str= None, web_search: bool =False):
+    tools = [{"type":"web_search_preview"}] if web_search else None
 
-    if user_input.lower() == "quit":
-        print("Good luck on your tech journey!")
-        break
-    if not user_input:
-        continue
-
-    response = client.responses.create(
+    def stream():
+     with client.responses.stream(
         model="gpt-4.1",
         instructions=INSTRUCTION,
         input=user_input,
         tools=tools,
-        previous_response_id=previous_response_id,  # chains history
-    )
-    previous_response_id = response.id
+        previous_response_id=previous_response_id,
+     ) as s:
+        for  event in s:
+           if event.type == "response.output_text.delta":
+              yield f"data:{event.delta}\n\n"
 
-    print(f"\nCounsellor: {response.output_text}\n")
+        final = s.get_final_response()
+        yield f"event: done\ndata: {final.id}\n\n"
+        
+        
+ 
+    
+    
 
+    return StreamingResponse(stream(), media_type="text/event-stream", headers={
+        "Cache-Control": "no-cache",
+        "X-Accel-Buffering": "no",
+    })
+
+  
+
+# if __name__ == "__main__":
+#     previous_response_id = None
+
+#     print("Tech Career Counsellor (type 'quit' to exit)\n")
+
+#     while True:
+#         user_input = input("You: ").strip()
+
+#         if user_input.lower() == "quit":
+#             break
+#         if not user_input:
+#             continue
+
+
+        
+#         with client.responses.stream(
+#             model="gpt-4.1",
+#             instructions=INSTRUCTION,
+#             input=user_input,
+#             previous_response_id=previous_response_id,
+            
+#         ) as s:
+#             print("Counsellor: ", end="", flush=True)
+#             for event in s:
+#                 if event.type == "response.output_text.delta":
+#                     print(event.delta, end="", flush=True)  # prints token by token
+            
+#             previous_response_id = s.get_final_response().id  # chain history
+#             print("\n")
