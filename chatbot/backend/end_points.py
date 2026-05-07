@@ -4,6 +4,7 @@ from openai import OpenAI
 import os
 from dotenv import load_dotenv
 from fastapi.responses import StreamingResponse
+from new_llm import stream_chat
 
 load_dotenv()
 
@@ -13,14 +14,14 @@ client = OpenAI(api_key=os.getenv("CHATGPT_API_KEY"))
 class ChatRequest(BaseModel):
     message: str
 
-def stream_chat(message: str):
-    with client.responses.stream(
-        model="gpt-4.1",
-        input=message,
-    ) as stream:
-        for event in stream:
-            if event.type == "response.output_text.delta":
-                yield event.delta
+# def stream_chat(message: str):
+#     with client.responses.stream(
+#         model="gpt-4.1",
+#         input=message,
+#     ) as stream:
+#         for event in stream:
+#             if event.type == "response.output_text.delta":
+#                 yield event.delta
 
 
 @app.post("/chat")

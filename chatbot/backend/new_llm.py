@@ -1,32 +1,14 @@
-import os
-from dotenv import load_dotenv
 from openai import OpenAI
-
-
+from dotenv import load_dotenv
+import os
 
 load_dotenv()
 
-
-API_KEY = os.getenv("CHATGPT_API_KEY")
-
-# # Initialiazing the Client
-
-client = OpenAI(api_key=API_KEY)
+client = OpenAI(api_key=os.getenv("CHATGPT_API_KEY"))
 
 previous_response_id = None
 
-
-
-web_search_choice = input("do you want the response from web search?(yes/no)?").strip().lower()
-
-if web_search_choice =="yes":
-    tools = [{"type":"web_search_preview"}]
-else:
-    tools = None
-
-print("\nI'm your tech career counsellor. Type 'quit' to exit.\n")
-                  
-INSTRUCTION="""
+SYSTEM_PROMPT="""
 You are an expert tech career counsellor with 15+ years of experience in the 
 technology industry. You have deep knowledge of software engineering, data science, 
 AI/ML, cybersecurity, product management, DevOps, and other tech domains.
@@ -51,22 +33,16 @@ experienced), their available time, and their target goals.
 
 """
 
-while True:
-    user_input = input("You: ").strip()
 
-    if user_input.lower() == "quit":
-        print("Good luck on your tech journey!")
-        break
-    if not user_input:
-        continue
 
-    response = client.responses.create(
+def stream_chat(message: str):
+    with client.responses.stream(
         model="gpt-4.1",
-        instructions=INSTRUCTION,
-        input=user_input,
-        tools=tools,
-        previous_response_id=previous_response_id,  # chains history
-    )
-    previous_response_id = response.id
+        input=message,
+        instructions=SYSTEM_PROMPT,
+        tools = [{"type":"web_search_preview"}]
 
-    print(f"\nCounsellor: {response.output_text}\n")
+    ) as stream:
+        for event in stream:
+            if event.type == "response.output_text.delta":
+                yield event.delta
