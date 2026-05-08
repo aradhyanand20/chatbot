@@ -1,21 +1,28 @@
 import streamlit as st
 import requests
 
+#APP Title
 st.title("Tech counsellor Chatbot")
 
+
+#  Session State Initialization
 if "messages" not in st.session_state:
     st.session_state.messages = []
 
+#chat History Display
 chat_window = st.container()
 with chat_window:
     for msg in st.session_state.messages:
         with st.chat_message(msg["role"]):
             st.write(msg["content"])
 
+
+#User Input Form
 with st.form(key="chats", clear_on_submit=True):
     user_input = st.text_input("Enter you message:",placeholder="what you want to ask?")
     send = st.form_submit_button("submit")
 
+#Handle Submission & Stream Response
 if send and user_input.strip():
     st.session_state.messages.append({"role":"user", "content":user_input})
 
@@ -39,7 +46,7 @@ if send and user_input.strip():
 
     # -----------------------------------
 
-
+# Render the assistant's chat bubble
     with st.chat_message("assistant"):
         placeholder = st.empty()
         full_text = ""
@@ -47,6 +54,7 @@ if send and user_input.strip():
         # show initial loading state
         placeholder.markdown("Thinking...")
 
+# POST to the streaming FastAPI endpoint
         response = requests.post(
             "http://127.0.0.1:8000/chatting",
             json={"message": user_input},
@@ -67,6 +75,7 @@ if send and user_input.strip():
         placeholder.markdown(full_text)
         bot_reply = full_text
 
+ # Persist the assistant's full reply in session state for future reruns
     st.session_state.messages.append({
         "role": "assistant",
         "content": bot_reply
