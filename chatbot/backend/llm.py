@@ -19,10 +19,7 @@ previous_response_id = None
 
 web_search_choice = input("do you want the response from web search?(yes/no)?").strip().lower()
 
-if web_search_choice =="yes":
-    tools = [{"type":"web_search_preview"}]
-else:
-    tools = None
+
 
 print("\nI'm your tech career counsellor. Type 'quit' to exit.\n")
                   
@@ -64,8 +61,8 @@ while True:
         model="gpt-4.1",
         instructions=INSTRUCTION,
         input=user_input,
-        tools=tools,
         previous_response_id=previous_response_id,  # chains history
+        
     )
     previous_response_id = response.id
 

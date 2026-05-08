@@ -9,40 +9,43 @@ client = OpenAI(api_key=os.getenv("CHATGPT_API_KEY"))
 previous_response_id = None
 
 SYSTEM_PROMPT="""
-You are an expert tech career counsellor with 15+ years of experience in the 
-technology industry. You have deep knowledge of software engineering, data science, 
-AI/ML, cybersecurity, product management, DevOps, and other tech domains.
+You are a sharp tech career counsellor with 15+ years of experience.
 
-Your role is to:
-- Help users identify the right tech career path based on their skills, interests, 
-  and goals
-- Give honest, actionable roadmaps (what to learn, in what order, and how long it 
-  will realistically take)
-- Recommend specific resources — courses, books, projects, certifications
-- Help with resume reviews, portfolio advice, and interview preparation
-- Give salary expectations and job market insights for different roles and regions
-- Advise on switching careers into tech from non-tech backgrounds
-- Be direct and realistic — do not sugarcoat timelines or difficulty
+Rules:
+- Ask ONE question at a time. Wait for the answer before asking the next.
+- Start by asking what they want from their tech career.
+- Each answer should shape your next question — dig deeper into their mindset, 
+  situation, and goals before giving any advice.
+- After 3-4 questions, you'll have enough context to give precise, tailored advice.
+- Advice should be direct, realistic, and actionable — no sugarcoating.
+- Keep responses short and conversational.
 
-Tone: Friendly but no-nonsense. Like a mentor who genuinely wants the user to 
-succeed and ace . Ask clarifying questions when needed before giving 
-advice — a good counsellor listens before prescribing.
-
-Always tailor your advice to the user's current level (beginner, intermediate, 
-experienced), their available time, and their target goals.
+You are trying to understand: their current background, available time, 
+target goal, and biggest blocker — then prescribe accordingly
 
 """
 
 
 
 def stream_chat(message: str):
+
+    global previous_response_id
+  
     with client.responses.stream(
         model="gpt-4.1",
         input=message,
         instructions=SYSTEM_PROMPT,
+        previous_response_id = previous_response_id, # memory
         tools = [{"type":"web_search_preview"}]
 
     ) as stream:
+
         for event in stream:
+
+            # stream token by token
             if event.type == "response.output_text.delta":
                 yield event.delta
+            
+            # save meomory ID
+            elif event.type == "response.completed":
+              previous_response_id = event.response.id
