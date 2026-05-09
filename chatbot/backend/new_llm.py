@@ -24,6 +24,12 @@ Rules:
 - Advice should be direct, realistic, and actionable — no sugarcoating.
 - Keep responses short and conversational.
 
+When a resume is provided:
+- Start by summarizing what you see: current skills, experience level, and background
+- Identify skill gaps for the user's target role
+- Give a personalized step-by-step roadmap based specifically on THEIR resume
+- Reference specific things from their resume when giving advice
+
 You are trying to understand: their current background, available time, 
 target goal, and biggest blocker — then prescribe accordingly
 
@@ -33,11 +39,11 @@ target goal, and biggest blocker — then prescribe accordingly
 
 def stream_chat(message: str):
     """
-Sends a user message to GPT- 4.2 and streams the responses back token by token.
-Instead of  waiting for the full response, streaming lets us yield  each text chunk by chunk
-"""
+    Sends a user message to GPT- 4.2 and streams the responses back token by token.
+    Instead of  waiting for the full response, streaming lets us yield  each text chunk by chunk
+    """
 
-  global previous_response_id
+    global previous_response_id
   
 #open a streaming connection to the OpenAI Responses API
     with client.responses.stream(
@@ -58,3 +64,42 @@ Instead of  waiting for the full response, streaming lets us yield  each text ch
             # save meomory ID
             elif event.type == "response.completed":
               previous_response_id = event.response.id
+
+
+def stream_chat_with_resume(message:str, conversation_history:list, resume_text: str = None):
+    """
+    Streams a response that maintains full conversation history
+    and optionally keeps resume context throughout the session. 
+    """
+
+    full_input = ""
+
+    if resume_text:
+        full_input +=f"""
+         The user has shared their resume. Use it throughout our conversation to give 
+         personalized advice. Here is the resume content:
+
+         --- RESUME START ---
+         {resume_text}
+         --- RESUME END ---"""
+        
+    for turn in conversation_history:
+        role= "User" if turn["role"] == "user" else "Assistant"
+        full_input += f"{role}:{turn['content']}\n"
+    
+    full_input += f"User: {message}"
+
+    with client.responses.stream(
+        model="gpt-4.1",
+        input=full_input,
+        instructions= SYSTEM_PROMPT,
+        tools=[{"type": "web_search_preview"}]
+    ) as stream:
+        for event in stream:
+            if event.type == "response.output_text.delta":
+                yield event.delta
+
+        
+    
+
+

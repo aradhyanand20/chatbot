@@ -19,3 +19,5 @@ def chat(req:ChatRequest):
         input = req.message
     )
     return {"reply": response.output[0].content[0].text}
+
+
