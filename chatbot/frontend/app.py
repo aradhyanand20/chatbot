@@ -20,6 +20,10 @@ with chat_window:
 #User Input Form
 with st.form(key="chats", clear_on_submit=True):
     user_input = st.text_input("Enter you message:",placeholder="what you want to ask?")
+
+    # web search toggle
+    web_search = st.checkbox("🌐 Use Web Search")
+    
     send = st.form_submit_button("submit")
 
 #Handle Submission & Stream Response
@@ -57,7 +61,10 @@ if send and user_input.strip():
 # POST to the streaming FastAPI endpoint
         response = requests.post(
             "http://127.0.0.1:8000/chatting",
-            json={"message": user_input},
+            json={
+                "message": user_input,
+                "web_search": web_search
+                },
             stream = True # required for streaming
         )
 

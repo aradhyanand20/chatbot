@@ -17,6 +17,7 @@ client = OpenAI(api_key=os.getenv("CHATGPT_API_KEY"))
 #pydantic model
 class ChatRequest(BaseModel):
     message: str
+    web_search:bool = False
 
 
 #Endpoint 1: standard chat
@@ -45,7 +46,10 @@ def chat(req: ChatRequest):
     rather than buffering everything and sending it all at once.
     """
     return StreamingResponse(
-        stream_chat(req.message),
+        stream_chat(
+        req.message,
+        req.web_search
+        ),
         media_type = "text/plain"
     )
     
