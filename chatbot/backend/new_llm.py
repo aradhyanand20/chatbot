@@ -1,6 +1,7 @@
 from openai import OpenAI
 from dotenv import load_dotenv
 import os
+from prompts import BASE_PROMPT, WEB_ENABLED_PROMPT, WEB_DISABLED_PROMPT
 
 # loading the .env file and intializing the OpenAI client
 load_dotenv()
@@ -11,29 +12,7 @@ client = OpenAI(api_key=os.getenv("CHATGPT_API_KEY"))
 previous_response_id = None
 
 
-#Sytem Prompt that defines the AI's Persona
-SYSTEM_PROMPT="""
-You are a sharp tech career counsellor with 15+ years of experience.
 
-Rules:
-- Ask ONE question at a time. Wait for the answer before asking the next.
-- Start by asking what they want from their tech career.
-- Each answer should shape your next question — dig deeper into their mindset, 
-  situation, and goals before giving any advice.
-- After 3-4 questions, you'll have enough context to give precise, tailored advice.
-- Advice should be direct, realistic, and actionable — no sugarcoating.
-- Keep responses short and conversational.
-
-When a resume is provided:
-- Start by summarizing what you see: current skills, experience level, and background
-- Identify skill gaps for the user's target role
-- Give a personalized step-by-step roadmap based specifically on THEIR resume
-- Reference specific things from their resume when giving advice
-
-You are trying to understand: their current background, available time, 
-target goal, and biggest blocker — then prescribe accordingly
-
-"""
 
 
 
@@ -43,7 +22,15 @@ def stream_chat(message: str, web_search:bool):
         Sends a user message to GPT- 4.2 and streams the responses back token by token.
         Instead of  waiting for the full response, streaming lets us yield  each text chunk by chunk
         """
-      global previous_response_id
+    global previous_response_id
+
+
+    SYSTEM_PROMPT = (
+        BASE_PROMPT + 
+        (
+            WEB_ENABLED_PROMPT if web_search else WEB_DISABLED_PROMPT
+        ) 
+    )
     
     #open a streaming connection to the OpenAI Responses API
     with client.responses.stream(
