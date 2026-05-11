@@ -1,13 +1,58 @@
 import streamlit as st
 import requests
-
+import json
 #APP Title
 st.title("Tech counsellor Chatbot")
 
-
-#  Session State Initialization
-if "messages" not in st.session_state:
+#session State Intialization
+if "message" not in st.session_state:
     st.session_state.messages = []
+
+if "resume_text" not in st.session_state:
+    st.session_state.resume_text = ""
+
+if "resume_uploaded" not in st.session_state:
+    st.session_state.resume_uploaded = False
+
+    
+# sidebar resume Upload
+with st.sidebar:
+    st.header("📄 Your Resume")
+    st.caption("Upload your resume to get personalized career advice")
+
+uploaded_file = st.file_uploader(
+    "Upload Resume",
+    type=["pdf","txt","md"]
+)
+
+if uploaded_file is not None and not st.session_state.resume_uploaded:
+    with st.spinner("reading your resume. . ."):
+        response = requests.post(
+            "http://127.0.0.1:8000/upload-resume",
+            files={"file":(
+                uploaded_file.name,
+                uploaded_file.getvalue(),
+                uploaded_file.type
+            )}
+        )
+        result = response.json()
+
+        if "resume_text" in result:
+            st.session_state.resume_text = result["resume_text"]
+            st.session_state.resume_uploaded = True
+            st.success("✅ Resume uploaded!")
+        else:
+            st.error(f"❌ {result.get('error', 'Failed to read resume.')}")
+
+if st.session_state.resume_uploaded:
+    st.info("📎 Resume active — advice is personalized to you.")
+    if st.button("🗑️ Remove Resume"):
+        st.session_state.resume_text = ""
+        st.session_state.resume_uploaded = False
+        st.rerun()
+
+
+
 
 #chat History Display
 chat_window = st.container()
@@ -58,8 +103,20 @@ if send and user_input.strip():
         # show initial loading state
         placeholder.markdown("Thinking...")
 
-# POST to the streaming FastAPI endpoint
-        response = requests.post(
+# Route to correct endpoint based on whether resume exists
+        if st.session_state.resume_text:
+            # Resume uploaded → personalized endpoint
+            response = requests.post(
+                "http://127.0.0.1:8000//chat_with_resume",
+                data={
+                    "message": user_input,
+                    "conversation_history": json.dumps(st.session_state.messages[:-1]),
+                    "resume": st.session_state.resume_text
+                },
+                stream=True
+            )
+        else:
+            response = requests.post(
             "http://127.0.0.1:8000/chatting",
             json={
                 "message": user_input,
@@ -67,6 +124,7 @@ if send and user_input.strip():
                 },
             stream = True # required for streaming
         )
+        
 
         #stream tokens
         for chunk in response.iter_content(
@@ -83,9 +141,12 @@ if send and user_input.strip():
         bot_reply = full_text
 
  # Persist the assistant's full reply in session state for future reruns
-    st.session_state.messages.append({
+    if bot_reply.strip():
+        st.session_state.messages.append({
         "role": "assistant",
         "content": bot_reply
     })
 
-    st.rerun()
+
+
+    
