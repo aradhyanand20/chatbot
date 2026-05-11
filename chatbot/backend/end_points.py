@@ -1,10 +1,12 @@
-from fastapi import FastAPI
+from fastapi import FastAPI, UploadFile, File, Form
 from pydantic import BaseModel
 from openai import OpenAI
 import os
+import io
+import json
 from dotenv import load_dotenv
 from fastapi.responses import StreamingResponse
-from new_llm import stream_chat
+from new_llm import stream_chat, stream_chat_with_resume
 
 
 # load environment variables from .env
@@ -53,3 +55,45 @@ def chat(req: ChatRequest):
         media_type = "text/plain"
     )
     
+    #endpoint 3: RESUME TEXT EXTRACTOR
+
+@app.post("/upload-resume")
+async def upload_resume(file: UploadFile= File(...)):
+
+    file_bytes =  await file.read()
+
+    if file.filename.endswith(".pdf"):
+        try:
+            import pypdf
+            pdf_reader = pypdf.PdfReader(io.BytesIO(file_bytes))
+            resume_text = "\n".join(
+                page.extract_text() for page in pdf_reader.pages if page.extract_text()
+            )
+        except Exception as e:
+            return {"error":f"failed to read PDF:{str(e)}"}
+        
+    else:
+        try:
+            resume_text = file_bytes.decode("utf-8")
+        except UnicodeDecodeError:
+            return {"error": "Unsupported format. Please upload a PDF,TXT OR MD file"}
+    
+    return {"resume_text": resume_text}
+
+#Endpoint 4
+@app.post("/chat_with_resume")
+async def chat_with_resume(
+    message: str = Form(...),
+    conversation_history: str = Form(...),
+    resume: str = Form(default="")
+):
+    history =json.loads(conversation_history)
+
+    return StreamingResponse(
+        stream_chat_with_resume(
+            message=message,
+            conversation_history=history,
+            resume_text=resume if resume else None  # Pass None if no resume uploaded
+        ),
+        media_type="text/plain"
+    )
