@@ -97,3 +97,39 @@ async def chat_with_resume(
         ),
         media_type="text/plain"
     )
+
+@app.post("/transcribe")
+async def transcribe(
+    file: UploadFile = File(...)
+):
+    try:
+
+        #read uploaded audio
+        audio_bytes = await file.read()
+
+        temp_file = "temp_audio.wav"
+
+        # Save temporary audio file
+        with open(temp_file, "wb") as f:
+            f.write(audio_bytes)
+
+        # Open audio for whisper
+        with open(temp_file, "rb") as audio_file:
+
+            transcript = client.audio.transcriptions.create(
+                model = "whisper-1",
+                file = audio_file
+            )
+        
+        # Delete temp file
+        os.remove(temp_file)
+
+        return {
+            "text": transcript.text
+        }
+
+    except Exception as e:
+
+        return {
+            "error": str(e)
+        }
