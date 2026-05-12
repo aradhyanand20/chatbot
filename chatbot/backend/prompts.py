@@ -1,4 +1,4 @@
-#Sytem Prompt that defines the AI's Persona
+# System Prompt that defines the AI's Persona
 
 BASE_PROMPT="""
 You are a sharp tech career counsellor with 15+ years of experience.
