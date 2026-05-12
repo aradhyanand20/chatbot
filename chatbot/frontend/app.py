@@ -99,7 +99,7 @@ if audio:
 #User Input Form
 with st.form(key="chats", clear_on_submit=True):
     user_input = st.text_input(
-        "Enter you message:",
+        "Enter your message:",
         value=st.session_state.voice_text,
         placeholder="what you want to ask?"
     )

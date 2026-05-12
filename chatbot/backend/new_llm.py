@@ -14,7 +14,7 @@ previous_response_id = None
 
 def stream_chat(message: str, web_search: bool):
     """
-        Sends a user message to GPT- 4.2 and streams the responses back token by token.
+        Sends a user message to GPT-4.1 and streams the responses back token by token.
         Instead of  waiting for the full response, streaming lets us yield  each text chunk by chunk
         """
     global previous_response_id
