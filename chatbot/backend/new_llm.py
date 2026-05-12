@@ -36,7 +36,7 @@ def stream_chat(message: str, web_search: bool):
             if event.type == "response.output_text.delta":
                 yield event.delta
 
-            # save meomory ID
+            # save memory ID
             elif event.type == "response.completed":
                 previous_response_id = event.response.id
 
